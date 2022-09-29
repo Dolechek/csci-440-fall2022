@@ -14,7 +14,7 @@ public class Homework1 extends DBTest {
      * Write a query in the string below that returns all artists that have an 'A' in their name
      */
     void selectArtistsWhoseNameHasAnAInIt(){
-        List<Map<String, Object>> results = executeSQL("SELECT * FROM artists");
+        List<Map<String, Object>> results = executeSQL("SELECT * FROM artists WHERE name LIKE \"%A%\"");
         assertEquals(211, results.size());
     }
 
@@ -24,7 +24,11 @@ public class Homework1 extends DBTest {
      */
     void selectAllArtistsWithMoreThanOneAlbum(){
         List<Map<String, Object>> results = executeSQL(
-                "SELECT * FROM artists");
+                "SELECT artists.Name, albums.Title\n" +
+                        "FROM artists\n" +
+                        "JOIN albums on artists.ArtistId = albums.ArtistId\n" +
+                        "GROUP BY albums.ArtistId\n" +
+                        "HAVING COUNT(albums.AlbumId) > 1;");
 
         assertEquals(56, results.size());
         assertEquals("AC/DC", results.get(0).get("Name"));
@@ -37,9 +41,16 @@ public class Homework1 extends DBTest {
          */
     void selectTheTrackAndAlbumAndArtistForAllTracksLongerThanSixMinutes() {
         List<Map<String, Object>> results = executeSQL(
-                "SELECT tracks.Name as TrackName, albums.Title as AlbumTitle, artists.Name as ArtistsName FROM tracks " +
-                        "-- NEED TO DO SOME JOINS HERE KIDS");
-
+                "SELECT\n" +
+                        "    tracks.Name as Trackname,\n" +
+                        "    album.Title as AlbumTitle,\n" +
+                        "    artist2album.Name as ArtistsName,\n" +
+                        "    tracks.Milliseconds\n" +
+                        "FROM tracks\n" +
+                        "JOIN albums album on tracks.AlbumId = album.AlbumId\n" +
+                        "JOIN artists artist2album on artist2album.ArtistId = album.ArtistId\n" +
+                        "GROUP BY album.Title, tracks.Name, artist2album.Name, tracks.Milliseconds\n" +
+                        "HAVING tracks.Milliseconds > 6 * 60 * 1000;");
         assertEquals(623, results.size());
 
         // For now just get the count right, we'll do more elaborate stuff when we get
