@@ -9,14 +9,18 @@ import java.util.Map;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class Homework2 extends DBTest {
-
     @Test
     /*
      * Create a view tracksPlus to display the artist, song title, album, and genre for all tracks.
      */
     public void createTracksPlusView(){
         //TODO fill this in
-        executeDDL("CREATE VIEW tracksPlus");
+        executeDDL("CREATE VIEW tracksPlus AS SELECT tracks.TrackId as TrackId, artists.Name as ArtistName, tracks.Name as SongTitle, \n" +
+                "albums.Title as AlbumTitle, genres.Name as GenreName\n" +
+                "FROM tracks\n" +
+                "JOIN albums on albums.AlbumId = tracks.AlbumId\n" +
+                "JOIN artists on artists.ArtistId = albums.ArtistId\n" +
+                "JOIN genres on genres.GenreId = tracks.GenreId");
 
         List<Map<String, Object>> results = executeSQL("SELECT * FROM tracksPlus ORDER BY TrackId");
         assertEquals(3503, results.size());
@@ -36,8 +40,9 @@ public class Homework2 extends DBTest {
      */
     public void createGrammyInfoTable(){
         //TODO fill these in
-        executeDDL("create table grammy_categories");
-        executeDDL("create table grammy_infos");
+        executeDDL("CREATE TABLE grammy_categories (Name TEXT, GrammyCategoryId INTEGER PRIMARY KEY UNIQUE)");
+        executeDDL("CREATE TABLE grammy_infos (ArtistId INTEGER PRIMARY KEY," +
+                "AlbumId INTEGER NOT NULL UNIQUE, TrackId INTEGER NOT NULL UNIQUE, GrammyCategoryId INTEGER UNIQUE, Status TEXT NOT NULL UNIQUE)");
 
         // TEST CODE
         executeUpdate("INSERT INTO grammy_categories(Name) VALUES ('Greatest Ever');");
@@ -61,7 +66,13 @@ public class Homework2 extends DBTest {
         Integer before = (Integer) executeSQL("SELECT COUNT(*) as COUNT FROM genres").get(0).get("COUNT");
 
         //TODO fill this in
-        executeUpdate("INSERT");
+        executeUpdate("INSERT INTO genres (Name)\n" +
+                "VALUES\n" +
+                "    ('Metalcore'),\n" +
+                "    ('Deathcore'),\n" +
+                "    ('Nu Metal'),\n" +
+                "    ('Chillwave'),\n" +
+                "    ('Synthwave')");
 
         Integer after = (Integer) executeSQL("SELECT COUNT(*) as COUNT FROM genres").get(0).get("COUNT");
         assertEquals(before + 5, after);
