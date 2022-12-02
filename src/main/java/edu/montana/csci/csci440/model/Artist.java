@@ -15,12 +15,14 @@ public class Artist extends Model {
 
     Long artistId;
     String name;
+    private String ogName;
 
     public Artist() {
     }
 
     private Artist(ResultSet results) throws SQLException {
         name = results.getString("Name");
+        ogName = name;
         artistId = results.getLong("ArtistId");
     }
 
@@ -48,12 +50,74 @@ public class Artist extends Model {
         return all(0, Integer.MAX_VALUE);
     }
 
+    @Override
+    public boolean verify() {
+        _errors.clear(); // clear any existing errors
+        if (name == null || "".equals(name)) {
+            addError("Name can't be null or blank!");
+        }
+        return !hasErrors();
+    }
+
+    @Override
+    public boolean create() {
+        try (Connection conn = DB.connect();
+             PreparedStatement stmt = conn.prepareStatement(
+                     "INSERT INTO artists (Name) VALUES (?)"
+             )) {
+            stmt.setString(1, this.getName());
+            stmt.executeUpdate();
+            artistId = DB.getLastID(conn);
+            return true;
+
+        } catch (SQLException sqlException) {
+            throw new RuntimeException(sqlException);
+        }
+    }
+
+    @Override
+    public boolean update() {
+        try (Connection conn = DB.connect();
+             PreparedStatement stmt = conn.prepareStatement(
+                     "UPDATE artists SET NAME = ? WHERE NAME = ? AND ArtistId = ?"
+             )) {
+            stmt.setString(1, this.getName());
+            stmt.setString(2, ogName);
+            stmt.setLong(3, this.getArtistId());
+            int updatedRows = stmt.executeUpdate();
+            if(updatedRows == 0) {
+                return false;
+            }
+            else{
+                return true;
+            }
+
+        } catch (SQLException sqlException) {
+            throw new RuntimeException(sqlException);
+        }
+    }
+
+    @Override
+    public void delete() {
+        try (Connection conn = DB.connect();
+             PreparedStatement stmt = conn.prepareStatement(
+                     "DELETE FROM artists WHERE NAME = ?"
+             )) {
+            stmt.setString(1, getName());
+            stmt.executeUpdate();
+
+        } catch (SQLException sqlException) {
+            throw new RuntimeException(sqlException);
+        }
+    }
+
     public static List<Artist> all(int page, int count) {
         try (Connection conn = DB.connect();
              PreparedStatement stmt = conn.prepareStatement(
-                     "SELECT * FROM artists LIMIT ?"
+                     "SELECT * FROM artists LIMIT ? OFFSET ?"
              )) {
             stmt.setInt(1, count);
+            stmt.setInt(2, (page - 1) * count);
             ResultSet results = stmt.executeQuery();
             List<Artist> resultList = new LinkedList<>();
             while (results.next()) {

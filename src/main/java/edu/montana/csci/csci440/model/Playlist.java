@@ -9,7 +9,6 @@ import java.sql.SQLException;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
-
 public class Playlist extends Model {
 
     Long playlistId;
@@ -23,10 +22,30 @@ public class Playlist extends Model {
         playlistId = results.getLong("PlaylistId");
     }
 
-
     public List<Track> getTracks(){
         // TODO implement, order by track name
-        return Collections.emptyList();
+        //return Collections.emptyList();
+        return Track.forPlaylist(getPlaylistId());
+    }
+
+    public static List<Playlist> forTracks(long trackId) {
+        try (Connection conn = DB.connect();
+             PreparedStatement stmt = conn.prepareStatement(
+                     "SELECT playlists.PlaylistId, playlists.Name FROM tracks\n" +
+                             "JOIN playlist_track on tracks.TrackId = playlist_track.TrackId\n" +
+                             "JOIN playlists on playlist_track.PlaylistId = playlists.PlaylistId\n" +
+                             "where tracks.TrackId = " + trackId
+             )) {
+
+            ResultSet results = stmt.executeQuery();
+            List<Playlist> resultList = new LinkedList<>();
+            while (results.next()) {
+                resultList.add(new Playlist(results));
+            }
+            return resultList;
+        } catch (SQLException sqlException) {
+            throw new RuntimeException(sqlException);
+        }
     }
 
     public Long getPlaylistId() {
@@ -48,8 +67,10 @@ public class Playlist extends Model {
     public static List<Playlist> all(int page, int count) {
         try (Connection conn = DB.connect();
              PreparedStatement stmt = conn.prepareStatement(
-                     "SELECT * FROM playlists"
+                     "SELECT * FROM playlists LIMIT ? OFFSET ?"
              )) {
+            stmt.setInt(1, count);
+            stmt.setInt(2, (page - 1) * count);
             ResultSet results = stmt.executeQuery();
             List<Playlist> resultList = new LinkedList<>();
             while (results.next()) {
